@@ -48,7 +48,17 @@ class PGSetup():
         del response2['ResponseMetadata']
         print(f"CREATE INDEX  : {response2}")
 
-        return response2
+        response3 = self.client.execute_statement(
+            resourceArn=self.cluster_arn, 
+            secretArn=self.credentials_arn,
+            sql=f"CREATE INDEX on bedrock_integration.{table_name} USING gin (to_tsvector('simple', chunks))",
+            database=self.database_name,
+            formatRecordsAs='JSON'
+        )
+        del response3['ResponseMetadata']
+        print(f"CREATE INDEX  : {response3}")
+
+        return response3
 
     
     def grant_privileges(self):

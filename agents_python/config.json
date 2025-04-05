@@ -11,7 +11,7 @@
     "auroraSchemaTableName": "knowledge_bases",
     "bedrockUser": "bedrock_user",
     "_comment2": "Bedrock models supported",
-    "agentModelId": "anthropic.claude-3-sonnet-20240229-v1:0",
+    "agentModelId": "us.anthropic.claude-3-sonnet-20240229-v1:0",
     "embeddingModelId": "amazon.titan-embed-text-v2:0",
     "_comment3": "Knowledgebase definition",
     "knowledgeBaseName": "booking-agent-kb",

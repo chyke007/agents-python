@@ -10,7 +10,6 @@ from aws_cdk import (
     RemovalPolicy,
     aws_lambda as lambda_,
     aws_s3_notifications as s3n,
-    aws_opensearchserverless as os_serverless,
     aws_iam as iam,
     CfnOutput,
     aws_bedrock as bedrock,
@@ -42,10 +41,6 @@ class AgentsPythonStack(Stack):
         knowledge_base_description = config['knowledgeBaseDescription']
         s3_bucket_name = config['s3BucketName']+region+"-"+account_id
         agent_model_id = config['agentModelId']
-        agent_model_arn = bedrock.FoundationModel.from_foundation_model_id(
-            scope=self,
-            _id='AgentModel',
-            foundation_model_id=bedrock.FoundationModelIdentifier(agent_model_id)).model_arn
 
         # Bedrock embedding model Amazon Titan Text v2
         embedding_model_id = config['embeddingModelId']
@@ -303,17 +298,45 @@ class AgentsPythonStack(Stack):
         )
 
         agent_role.add_to_policy(iam.PolicyStatement(
-            sid='InvokeBedrockLambda',
-            effect=iam.Effect.ALLOW,
-            resources=[
-                agent_model_arn],
-            actions=['bedrock:InvokeModel', 'lambda:InvokeFunction']))
-        agent_role.add_to_policy(iam.PolicyStatement(
             sid='RetrieveKBStatement',
             effect=iam.Effect.ALLOW,
             resources=[
                 knowledge_base.attr_knowledge_base_arn],
             actions=['bedrock:Retrieve']))
+        
+        # Added support for cross-region inference
+        agent_role.add_to_policy(
+            iam.PolicyStatement(
+                sid='InvokeInferenceProfile',
+                effect=iam.Effect.ALLOW,
+                actions=["bedrock:InvokeModel*", "bedrock:CreateInferenceProfile"],
+                resources=[
+                    "arn:aws:bedrock:*::foundation-model/*",
+                    "arn:aws:bedrock:*:*:inference-profile/*",
+                    "arn:aws:bedrock:*:*:application-inference-profile/*",
+                ],
+            )
+        )
+
+        agent_role.add_to_policy(
+            iam.PolicyStatement(
+                sid='ListInferenceProfile',
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "bedrock:GetInferenceProfile",
+                    "bedrock:ListInferenceProfiles",
+                    "bedrock:DeleteInferenceProfile",
+                    "bedrock:TagResource",
+                    "bedrock:UntagResource",
+                    "bedrock:ListTagsForResource",
+                ],
+                resources=[
+                    "arn:aws:bedrock:*:*:inference-profile/*",
+                    "arn:aws:bedrock:*:*:application-inference-profile/*",
+                ],
+            )
+        )
+
         action_group_function = lambda_.Function(
             self, "BedrockAgentActionGroupExecutor",
             runtime=lambda_.Runtime.PYTHON_3_12,
